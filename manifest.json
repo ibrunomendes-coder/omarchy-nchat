@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "ibrunomendes.nchat",
   "name": "nchat",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "Bruno Mendes",
   "license": "MIT",
-  "description": "Badge de mensagens não lidas do nchat na barra, alimentado pelo desktop_notify_command. Clique abre/foca o nchat em um terminal; clique direito limpa o contador.",
+  "description": "Mantém o nchat vivo em uma sessão tmux e mostra novas mensagens na barra. Clique abre/foca o terminal anexado sem encerrar o backend persistente.",
   "kinds": ["bar-widget"],
   "activation": "on-demand",
   "entryPoints": {
@@ -13,7 +13,7 @@
   },
   "barWidget": {
     "displayName": "nchat",
-    "description": "Mensagens não lidas do nchat, sem popups roubando o mouse.",
+    "description": "nchat persistente em tmux, com novas mensagens na barra e sem popups roubando o mouse.",
     "category": "System",
     "aliases": ["nchat", "whatsapp", "telegram", "chat", "mensagens"],
     "allowMultiple": false,

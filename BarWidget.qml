@@ -4,19 +4,31 @@ import Quickshell.Io
 import qs.Commons
 import qs.Ui
 
-// Badge de mensagens não lidas do nchat. Lê ~/.cache/nchat-plugin/state.json
-// (gravado pelo ~/.config/nchat/notify-hook.sh via desktop_notify_command) com
-// watch de arquivo — sem polling. Clique esquerdo abre/foca o nchat e limpa o
-// contador; clique direito só limpa.
+// Launcher + badge do nchat. O backend fica vivo numa sessão tmux gerenciada
+// por nchat-session.sh; fechar o terminal visível não encerra as notificações.
 BarWidget {
   id: root
   moduleName: "ibrunomendes.nchat"
 
-  readonly property string statePath: Quickshell.env("HOME") + "/.cache/nchat-plugin/state.json"
+  readonly property string pluginDir: {
+    var url = String(Qt.resolvedUrl("."))
+    return url.replace(/^file:\/\//, "").replace(/\/$/, "")
+  }
+  readonly property string helperPath: pluginDir + "/nchat-session.sh"
+  readonly property string cacheHome: Quickshell.env("XDG_CACHE_HOME") !== ""
+    ? Quickshell.env("XDG_CACHE_HOME") : Quickshell.env("HOME") + "/.cache"
+  readonly property string statePath: cacheHome + "/nchat-plugin/state.json"
 
   property int count: 0
   property string lastSender: ""
   property string lastText: ""
+  property bool backendOnline: false
+  property bool backendManaged: false
+  property bool backendExternal: false
+  property bool backendStarting: true
+  property string backendError: ""
+  property string _statusOutput: ""
+  property string _processError: ""
 
   readonly property color foreground: bar ? bar.barForeground : Color.foreground
   readonly property color urgent: bar ? bar.urgent : Color.urgent
@@ -25,29 +37,46 @@ BarWidget {
   implicitWidth: button.implicitWidth
   implicitHeight: button.implicitHeight
 
-  function parse(content) {
+  function parseState(content) {
     try {
       var obj = JSON.parse(String(content || ""))
       root.count = Math.max(0, parseInt(obj.count, 10) || 0)
       root.lastSender = String(obj.sender || "")
       root.lastText = String(obj.text || "")
     } catch (e) {
-      root.count = 0
-      root.lastSender = ""
-      root.lastText = ""
+      root.resetStateView()
     }
   }
 
-  function clear() {
+  function resetStateView() {
     root.count = 0
     root.lastSender = ""
     root.lastText = ""
-    if (root.bar) root.bar.run("rm -f " + root.statePath)
+  }
+
+  function clear() {
+    root.resetStateView()
+    if (!clearProcess.running)
+      clearProcess.exec({ command: [root.helperPath, "clear"] })
+  }
+
+  function ensureBackend() {
+    if (ensureProcess.running || root.helperPath === "") return
+    root.backendStarting = true
+    root._processError = ""
+    ensureProcess.exec({ command: [root.helperPath, "ensure"] })
+  }
+
+  function refreshStatus() {
+    if (statusProcess.running || root.helperPath === "") return
+    root._statusOutput = ""
+    statusProcess.exec({ command: [root.helperPath, "status"] })
   }
 
   function openChat() {
-    if (root.bar) root.bar.run("omarchy launch or focus tui --app-id=nchat nchat")
-    root.clear()
+    if (openProcess.running) return
+    root._processError = ""
+    openProcess.exec({ command: [root.helperPath, "open"] })
   }
 
   FileView {
@@ -55,35 +84,111 @@ BarWidget {
     watchChanges: true
     printErrors: false
     onFileChanged: reload()
-    onLoaded: root.parse(text())
-    onLoadFailed: {
-      root.count = 0
-      root.lastSender = ""
-      root.lastText = ""
+    onLoaded: root.parseState(text())
+    onLoadFailed: root.resetStateView()
+  }
+
+  Process {
+    id: ensureProcess
+    stderr: SplitParser {
+      onRead: function(data) { root._processError += data }
     }
+    onExited: function(exitCode) {
+      root.backendStarting = false
+      if (exitCode !== 0 && root._processError.trim() !== "")
+        root.backendError = root._processError.trim()
+      root.refreshStatus()
+    }
+  }
+
+  Process {
+    id: statusProcess
+    stdout: SplitParser {
+      onRead: function(data) { root._statusOutput += data }
+    }
+    onExited: function(exitCode) {
+      root.backendStarting = false
+      if (exitCode !== 0) {
+        root.backendOnline = false
+        root.backendManaged = false
+        return
+      }
+
+      try {
+        var status = JSON.parse(root._statusOutput.trim())
+        root.backendOnline = status.online === true
+        root.backendManaged = status.managed === true
+        root.backendExternal = status.external === true
+        if (root.backendManaged) root.backendError = ""
+        else if (root.backendExternal)
+          root.backendError = "nchat já está rodando fora da sessão persistente"
+      } catch (e) {
+        root.backendOnline = false
+        root.backendManaged = false
+        root.backendError = "status inválido do backend"
+      }
+    }
+  }
+
+  Process {
+    id: openProcess
+    stderr: SplitParser {
+      onRead: function(data) { root._processError += data }
+    }
+    onExited: function(exitCode) {
+      if (exitCode === 0) {
+        root.clear()
+        root.refreshStatus()
+      } else {
+        root.backendError = root._processError.trim() || ("falha ao abrir nchat (exit " + exitCode + ")")
+        root.refreshStatus()
+      }
+    }
+  }
+
+  Process {
+    id: clearProcess
+  }
+
+  Timer {
+    interval: 30000
+    running: true
+    repeat: true
+    triggeredOnStart: true
+    onTriggered: root.ensureBackend()
   }
 
   IpcHandler {
     target: "ibrunomendes.nchat"
-    function clear(): void { root.broadcast("clear") }
-    function open(): void { root.broadcast("openChat") }
+    // Um único handler é eleito pelo shell. Não usar broadcast aqui: comandos
+    // com efeito colateral abririam um terminal por monitor.
+    function clear(): void { root.clear() }
+    function open(): void { root.openChat() }
+    function ensure(): void { root.ensureBackend() }
+    function refresh(): void { root.refreshStatus() }
   }
 
   BarIconButton {
     id: button
     anchors.fill: parent
     bar: root.bar
-    tooltipText: root.count > 0
-      ? root.count + (root.count === 1 ? " mensagem não lida" : " mensagens não lidas")
-        + (root.lastSender !== "" ? " · " + root.lastSender + ": " + root.lastText : "")
-        + "\nClique: abrir nchat · Direito: limpar"
-      : "nchat — sem mensagens não lidas\nClique: abrir"
+    tooltipText: {
+      if (root.backendStarting) return "nchat — iniciando sessão persistente…"
+      if (root.backendExternal) return "nchat — aberto fora da sessão persistente\nFeche-o e clique para migrar"
+      if (!root.backendOnline)
+        return "nchat — offline" + (root.backendError !== "" ? "\n" + root.backendError : "") + "\nClique: iniciar e abrir"
+      if (root.count > 0)
+        return root.count + (root.count === 1 ? " nova mensagem" : " novas mensagens")
+          + (root.lastSender !== "" ? " · " + root.lastSender + ": " + root.lastText : "")
+          + "\nClique: abrir nchat · Direito: limpar"
+      return "nchat — online, sem novas mensagens\nClique: abrir"
+    }
     iconComponent: Component {
       Item {
         Text {
           anchors.centerIn: parent
           text: "\uf075" // nf-fa-comment
-          color: root.count > 0 ? root.urgent : root.dim
+          color: root.count > 0 ? root.urgent : (root.backendOnline ? root.dim : root.urgent)
           font.family: root.bar ? root.bar.fontFamily : Style.font.family
           font.pixelSize: Style.font.caption
         }
@@ -109,10 +214,21 @@ BarWidget {
             font.bold: true
           }
         }
+
+        Rectangle {
+          visible: root.count === 0
+          width: Style.space(4)
+          height: width
+          radius: width / 2
+          anchors.right: parent.right
+          anchors.bottom: parent.bottom
+          color: root.backendOnline ? root.foreground : root.urgent
+        }
       }
     }
     onPressed: function(b) {
       if (b === Qt.RightButton) root.clear()
+      else if (b === Qt.MiddleButton) root.ensureBackend()
       else root.openChat()
     }
   }
