@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "ibrunomendes.nchat",
   "name": "nchat",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "author": "Bruno Mendes",
   "license": "MIT",
   "description": "Instalação nativa via omarchy plugin add, setup no primeiro clique, backend persistente em tmux e novas mensagens na barra.",
