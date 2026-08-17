@@ -8,6 +8,7 @@
 [![nchat 5.17+](https://img.shields.io/badge/nchat-5.17%2B-7AA2F7?style=for-the-badge&logo=gnometerminal&logoColor=white)](https://github.com/d99kris/nchat)
 [![Persistent tmux backend](https://img.shields.io/badge/backend-tmux-1BB91F?style=for-the-badge&logo=tmux&logoColor=white)](https://github.com/tmux/tmux)
 [![Quickshell](https://img.shields.io/badge/UI-Quickshell-41CD52?style=for-the-badge&logo=qt&logoColor=white)](https://quickshell.outfoxxed.me)
+[![Native install](https://img.shields.io/badge/install-omarchy%20plugin%20add-F2A7C3?style=for-the-badge)](#install--one-command)
 [![MIT License](https://img.shields.io/badge/license-MIT-C9B1FF?style=for-the-badge)](LICENSE)
 
 **No notification daemon · No web service · No API token · No polling for messages**
@@ -17,6 +18,16 @@
 </div>
 
 ---
+
+## Quick install
+
+```bash
+omarchy plugin add https://github.com/ibrunomendes-coder/omarchy-nchat.git --enable
+```
+
+Then click the new chat icon once. The first click backs up and configures nchat, starts its persistent tmux session and opens the attached terminal.
+
+[Installation details and security behavior →](#install--one-command)
 
 ## The problem
 
@@ -29,8 +40,10 @@ A bar widget alone cannot solve the second problem. The messaging client itself 
 
 ## What this plugin does
 
-Omarchy × nchat turns nchat into a small persistent background service without modifying nchat itself:
+Omarchy × nchat turns nchat into a small persistent background service without patching nchat or reading its databases:
 
+- installs through Omarchy's native `plugin add <git-url> --enable` flow;
+- completes nchat integration on the first explicit icon click, with an atomic config backup;
 - starts nchat inside a detached tmux session named `omarchy-nchat`;
 - keeps it authenticated when no terminal window is visible;
 - replaces `notify-send` with a private local hook;
@@ -117,101 +130,83 @@ This avoids reading or depending on nchat's private database schema.
 
 | Component | Purpose | Tested version |
 |---|---|---|
-| Omarchy | Shell and bar host | `4.0.0-1` |
+| Omarchy | Shell, plugin manager and bar host | `4.0.0-1` |
 | Quickshell | Reactive widget runtime | `0.3.0` |
 | nchat | WhatsApp/Telegram/Signal client | `5.17.26` |
 | tmux | Persistent PTY/session backend | `3.7b` |
 | jq | Atomic JSON state generation | `1.8+` |
 | flock | Concurrent hook/clear locking | util-linux |
 
-## Installation
+nchat must already have at least one account configured. If this is a fresh nchat installation, run `nchat --setup` first.
 
-### 1. Clone the project
-
-```bash
-git clone https://github.com/ibrunomendes-coder/omarchy-nchat.git
-cd omarchy-nchat
-```
-
-### 2. Install the bar plugin and backend helper
+## Install — one command
 
 ```bash
-plugin_dir="$HOME/.config/omarchy/plugins/ibrunomendes.nchat"
-install -d -m 700 "$plugin_dir"
-install -m 644 manifest.json BarWidget.qml "$plugin_dir/"
-install -m 700 nchat-session.sh "$plugin_dir/"
+omarchy plugin add https://github.com/ibrunomendes-coder/omarchy-nchat.git --enable
 ```
 
-### 3. Install the nchat notification hook
+Omarchy will:
 
-```bash
-install -d -m 700 "$HOME/.config/nchat"
-install -m 700 notify-hook.sh "$HOME/.config/nchat/notify-hook.sh"
-```
+1. show its standard unsandboxed-plugin security warning;
+2. clone the repository into `~/.config/omarchy/plugins/ibrunomendes.nchat`;
+3. validate `manifest.json` and every entry point;
+4. ask where the widget should live (the default is `right`);
+5. enable it in `shell.json`;
+6. keep the checkout git-managed for future updates.
 
-### 4. Configure nchat
+### First click completes setup
 
-Edit `~/.config/nchat/ui.conf`:
+After installation, the icon appears in a setup-required state. Click it once.
 
-```ini
-desktop_notify_enabled=1
-desktop_notify_command=/home/<you>/.config/nchat/notify-hook.sh '%1' '%2'
-desktop_notify_inactive=1
-desktop_notify_active_noncurrent=1
-terminal_bell_inactive=0
-```
+That explicit click authorizes the plugin to:
 
-Use your absolute home path in `desktop_notify_command`; do not use `~`.
+1. create `~/.config/nchat/ui.conf.omarchy-nchat.bak` once;
+2. point `desktop_notify_command` to the hook inside the installed plugin;
+3. enable inactive/non-current-chat notifications;
+4. disable the inactive terminal bell;
+5. start the managed `omarchy-nchat` tmux session;
+6. open a terminal attached to it.
 
-Optional:
+The patch is atomic, preserves unrelated nchat settings and never duplicates configuration keys.
 
-```ini
-# Also notify for the currently selected chat while nchat is focused
-desktop_notify_active_current=1
-
-# Notify for every additional message in an already-unread chat
-notify_every_unread=1
-```
-
-Close any standalone nchat process after changing the configuration. The plugin will start the managed copy.
-
-### 5. Add the widget to the Omarchy bar
-
-Add the widget to any section in `~/.config/omarchy/shell.json`:
-
-```json
-{
-  "bar": {
-    "layout": {
-      "right": [
-        { "id": "ibrunomendes.nchat" }
-      ]
-    }
-  }
-}
-```
-
-Do not replace your existing `right` array; insert the widget entry into it.
-
-### 6. Validate and reload
-
-```bash
-omarchy plugin validate ~/.config/omarchy/plugins/ibrunomendes.nchat
-omarchy-shell shell rescanPlugins
-omarchy restart shell
-```
-
-Within a few seconds:
+Expected health after the first click:
 
 ```bash
 ~/.config/omarchy/plugins/ibrunomendes.nchat/nchat-session.sh status
 ```
 
-Expected result:
-
 ```json
-{"online":true,"managed":true,"external":false,"session":"omarchy-nchat"}
+{"online":true,"managed":true,"external":false,"configured":true,"session":"omarchy-nchat"}
 ```
+
+### Update
+
+Because Omarchy installs the repository as a git checkout:
+
+```bash
+omarchy plugin update ibrunomendes.nchat
+```
+
+<details>
+<summary>Manual installation fallback</summary>
+
+```bash
+git clone https://github.com/ibrunomendes-coder/omarchy-nchat.git
+cd omarchy-nchat
+
+plugin_dir="$HOME/.config/omarchy/plugins/ibrunomendes.nchat"
+install -d -m 700 "$plugin_dir"
+install -m 644 manifest.json BarWidget.qml "$plugin_dir/"
+install -m 700 nchat-session.sh notify-hook.sh "$plugin_dir/"
+
+omarchy plugin validate "$plugin_dir"
+omarchy plugin enable ibrunomendes.nchat
+omarchy restart shell
+```
+
+Then click the icon once to complete nchat integration.
+
+</details>
 
 ## Daily use
 
@@ -272,11 +267,24 @@ The test suite covers:
 - clear-state behavior;
 - tmux startup and shutdown;
 - idempotent `ensure` calls;
-- managed-session health reporting.
+- managed-session health reporting;
+- atomic first-click configuration with one-time backup;
+- idempotent setup without duplicate keys;
+- uninstall restoration that preserves unrelated later changes.
 
-The `0.2.0` release was additionally validated end-to-end with a real incoming WhatsApp message and a terminal detach test: the same authenticated nchat PID remained alive after the visible terminal closed.
+The persistent runtime was additionally validated end-to-end with a real incoming WhatsApp message and a terminal detach test: the same authenticated nchat PID remained alive after the visible terminal closed.
 
 ## Troubleshooting
+
+### Icon says setup is required
+
+Click it once. If setup cannot continue, verify that nchat already has an account and `~/.config/nchat/ui.conf` exists. For a fresh installation:
+
+```bash
+nchat --setup
+```
+
+Then click the widget again.
 
 ### Backend says `external: true`
 
@@ -324,19 +332,16 @@ find /run/user/$(id -u)/quickshell/by-id \
 
 ## Uninstall
 
+Run cleanup **before** removing the plugin checkout:
+
 ```bash
 helper="$HOME/.config/omarchy/plugins/ibrunomendes.nchat/nchat-session.sh"
-$helper stop
-
-rm -rf "$HOME/.config/omarchy/plugins/ibrunomendes.nchat"
-rm -f "$HOME/.config/nchat/notify-hook.sh"
+$helper uninstall
+omarchy plugin remove ibrunomendes.nchat
+omarchy restart shell
 ```
 
-Then:
-
-1. remove `{ "id": "ibrunomendes.nchat" }` from `~/.config/omarchy/shell.json`;
-2. restore `desktop_notify_command=` or set `desktop_notify_enabled=0` in `~/.config/nchat/ui.conf`;
-3. run `omarchy restart shell`.
+`uninstall` stops the tmux backend, removes notification state and restores only the five nchat settings owned by the plugin from its backup. Unrelated changes made after installation are preserved.
 
 ## Project scope
 

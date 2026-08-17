@@ -6,5 +6,6 @@ here=$(cd "$(dirname "$0")" && pwd)
 "$here/test-static.sh"
 "$here/test-hook.sh"
 "$here/test-session.sh"
+"$here/test-setup.sh"
 
 echo "PASS all"

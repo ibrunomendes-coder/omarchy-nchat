@@ -23,6 +23,7 @@ BarWidget {
   property string lastSender: ""
   property string lastText: ""
   property bool backendOnline: false
+  property bool backendConfigured: false
   property bool backendManaged: false
   property bool backendExternal: false
   property bool backendStarting: true
@@ -117,6 +118,7 @@ BarWidget {
       try {
         var status = JSON.parse(root._statusOutput.trim())
         root.backendOnline = status.online === true
+        root.backendConfigured = status.configured === true
         root.backendManaged = status.managed === true
         root.backendExternal = status.external === true
         if (root.backendManaged) root.backendError = ""
@@ -173,7 +175,8 @@ BarWidget {
     anchors.fill: parent
     bar: root.bar
     tooltipText: {
-      if (root.backendStarting) return "nchat — iniciando sessão persistente…"
+      if (root.backendStarting) return "nchat — verificando integração…"
+      if (!root.backendConfigured) return "nchat — configuração inicial necessária\nClique: configurar e abrir"
       if (root.backendExternal) return "nchat — aberto fora da sessão persistente\nFeche-o e clique para migrar"
       if (!root.backendOnline)
         return "nchat — offline" + (root.backendError !== "" ? "\n" + root.backendError : "") + "\nClique: iniciar e abrir"
@@ -188,7 +191,7 @@ BarWidget {
         Text {
           anchors.centerIn: parent
           text: "\uf075" // nf-fa-comment
-          color: root.count > 0 ? root.urgent : (root.backendOnline ? root.dim : root.urgent)
+          color: root.count > 0 ? root.urgent : (root.backendOnline && root.backendConfigured ? root.dim : root.urgent)
           font.family: root.bar ? root.bar.fontFamily : Style.font.family
           font.pixelSize: Style.font.caption
         }
@@ -222,7 +225,7 @@ BarWidget {
           radius: width / 2
           anchors.right: parent.right
           anchors.bottom: parent.bottom
-          color: root.backendOnline ? root.foreground : root.urgent
+          color: root.backendOnline && root.backendConfigured ? root.foreground : root.urgent
         }
       }
     }

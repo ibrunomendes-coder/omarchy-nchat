@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "ibrunomendes.nchat",
   "name": "nchat",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "author": "Bruno Mendes",
   "license": "MIT",
-  "description": "Mantém o nchat vivo em uma sessão tmux e mostra novas mensagens na barra. Clique abre/foca o terminal anexado sem encerrar o backend persistente.",
+  "description": "Instalação nativa via omarchy plugin add, setup no primeiro clique, backend persistente em tmux e novas mensagens na barra.",
   "kinds": ["bar-widget"],
   "activation": "on-demand",
   "entryPoints": {
@@ -13,9 +13,9 @@
   },
   "barWidget": {
     "displayName": "nchat",
-    "description": "nchat persistente em tmux, com novas mensagens na barra e sem popups roubando o mouse.",
+    "description": "nchat persistente em tmux, setup no primeiro clique e novas mensagens sem popups invasivos.",
     "category": "System",
-    "aliases": ["nchat", "whatsapp", "telegram", "chat", "mensagens"],
+    "aliases": ["nchat", "whatsapp", "telegram", "signal", "chat", "mensagens", "tmux", "persistent"],
     "allowMultiple": false,
     "defaultSection": "right"
   }
