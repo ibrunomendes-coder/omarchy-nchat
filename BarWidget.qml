@@ -20,8 +20,8 @@ BarWidget {
 
   readonly property color foreground: bar ? bar.barForeground : Color.foreground
   readonly property color urgent: bar ? bar.urgent : Color.urgent
+  readonly property color dim: Qt.darker(foreground, 1.55)
 
-  visible: count > 0
   implicitWidth: button.implicitWidth
   implicitHeight: button.implicitHeight
 
@@ -77,13 +77,13 @@ BarWidget {
       ? root.count + (root.count === 1 ? " mensagem não lida" : " mensagens não lidas")
         + (root.lastSender !== "" ? " · " + root.lastSender + ": " + root.lastText : "")
         + "\nClique: abrir nchat · Direito: limpar"
-      : ""
+      : "nchat — sem mensagens não lidas\nClique: abrir"
     iconComponent: Component {
       Item {
         Text {
           anchors.centerIn: parent
           text: "\uf075" // nf-fa-comment
-          color: root.urgent
+          color: root.count > 0 ? root.urgent : root.dim
           font.family: root.bar ? root.bar.fontFamily : Style.font.family
           font.pixelSize: Style.font.caption
         }

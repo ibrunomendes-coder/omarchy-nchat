@@ -25,7 +25,8 @@ nchat ──desktop_notify_command──> notify-hook.sh ──> ~/.cache/nchat-
 
 | Action | Result |
 |---|---|
-| New message | Badge appears / count increments, silently |
+| New message | Count increments silently; icon lights up with the badge |
+| No unread messages | Icon stays in the bar, dimmed — it never disappears |
 | Left click | Focus the running nchat window, or launch it in a terminal (`omarchy launch or focus tui`), and reset the counter |
 | Right click | Reset the counter only |
 | Hover | Tooltip: unread count + last sender/message |
@@ -84,8 +85,6 @@ Use the absolute path (no `~`). To silence the terminal bell as well: `terminal_
 ```bash
 omarchy-shell shell rescanPlugins
 ```
-
-The widget is invisible until the first unread message arrives.
 
 ## Uninstall
 
