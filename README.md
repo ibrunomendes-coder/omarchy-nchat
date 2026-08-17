@@ -86,6 +86,12 @@ Use the absolute path (no `~`). To silence the terminal bell as well: `terminal_
 omarchy-shell shell rescanPlugins
 ```
 
+## Troubleshooting
+
+- **Widget vanished after editing its QML:** the shell's hot-reload can drop the bar slot when plugin code changes. Run `omarchy restart shell` to get it back.
+- **Badge never lights up:** check `~/.cache/nchat-plugin/state.json` after receiving a message. If missing, verify `desktop_notify_enabled=1` and the `desktop_notify_command` path in `~/.config/nchat/ui.conf`, then restart nchat.
+- **Nothing in the bar at all:** `omarchy-shell shell rescanPlugins`, then `omarchy restart shell`.
+
 ## Uninstall
 
 1. Remove the `{"id": "ibrunomendes.nchat"}` entry from `~/.config/omarchy/shell.json`

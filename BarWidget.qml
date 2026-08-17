@@ -20,7 +20,7 @@ BarWidget {
 
   readonly property color foreground: bar ? bar.barForeground : Color.foreground
   readonly property color urgent: bar ? bar.urgent : Color.urgent
-  readonly property color dim: Qt.darker(foreground, 1.55)
+  readonly property color dim: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.6)
 
   implicitWidth: button.implicitWidth
   implicitHeight: button.implicitHeight
