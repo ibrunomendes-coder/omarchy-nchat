@@ -50,7 +50,7 @@ Omarchy × nchat turns nchat into a small persistent background service without 
 - displays new-message activity in the Omarchy bar;
 - opens or focuses a terminal attached to the running session when clicked;
 - leaves nchat running after that terminal closes;
-- checks backend health every 30 seconds and recovers a stopped session;
+- checks backend health every 30 seconds, recovers a stopped session and re-reads notification state;
 - prevents a managed and a standalone nchat from competing for the same profiles.
 
 > The visible terminal is only a tmux client. The persistent nchat process lives behind it.
@@ -314,9 +314,21 @@ cat ~/.cache/nchat-plugin/state.json | jq
 
 If the file does not exist, confirm the absolute `desktop_notify_command` path and restart nchat/the managed session.
 
-### Widget disappears after editing QML
+### Badge is stuck while messages keep arriving
 
-Plugin hot-reload can occasionally drop the bar slot:
+Plugin hot-reload can occasionally drop the bar slot, leaving the widget without
+an active file watch. The badge then freezes with no error in the shell log.
+
+The 30-second timer re-reads the state file and re-arms the watch, so this
+recovers on its own. To confirm the widget is actually watching:
+
+```bash
+pid=$(pgrep -f 'quickshell -n -p /usr/share/omarchy/shell' | head -1)
+grep -hE "ino:$(printf '%x' $(stat -c %i ~/.cache/nchat-plugin/state.json)) " /proc/$pid/fdinfo/*
+```
+
+No output means the watch is not armed. If the badge is still stuck after a
+full timer interval, restart the shell:
 
 ```bash
 omarchy restart shell

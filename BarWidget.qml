@@ -81,6 +81,7 @@ BarWidget {
   }
 
   FileView {
+    id: stateFile
     path: root.statePath
     watchChanges: true
     printErrors: false
@@ -157,7 +158,12 @@ BarWidget {
     running: true
     repeat: true
     triggeredOnStart: true
-    onTriggered: root.ensureBackend()
+    onTriggered: {
+      root.ensureBackend()
+      // Rede de segurança: se o watch do FileView não armar (hot-reload que
+      // derruba o bar slot), o badge congelaria sem nenhum sinal de erro.
+      stateFile.reload()
+    }
   }
 
   IpcHandler {
