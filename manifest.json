@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "ibrunomendes.nchat",
+  "name": "nchat",
+  "version": "0.1.0",
+  "author": "Bruno Mendes",
+  "license": "MIT",
+  "description": "Badge de mensagens não lidas do nchat na barra, alimentado pelo desktop_notify_command. Clique abre/foca o nchat em um terminal; clique direito limpa o contador.",
+  "kinds": ["bar-widget"],
+  "activation": "on-demand",
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "nchat",
+    "description": "Mensagens não lidas do nchat, sem popups roubando o mouse.",
+    "category": "System",
+    "aliases": ["nchat", "whatsapp", "telegram", "chat", "mensagens"],
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}
