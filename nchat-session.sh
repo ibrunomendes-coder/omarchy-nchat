@@ -267,9 +267,13 @@ open_session() {
   require omarchy
   setup_and_start
 
+  # O terminal destacado não pode herdar os pipes do quickshell: quando o
+  # widget fecha a ponta de leitura, o primeiro write no stderr mata o
+  # terminal com SIGPIPE antes da janela mapear (foot avisa xdg-toplevel-icon
+  # no startup; alacritty era silencioso e mascarava o bug).
   # ID exclusivo evita que o focus case com uma aba de navegador chamada nchat.
   exec omarchy launch or focus tui --app-id="$app_id" \
-    tmux attach-session -t "$session"
+    tmux attach-session -t "$session" >/dev/null 2>&1
 }
 
 clear_state() {
