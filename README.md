@@ -15,6 +15,8 @@
 
 <img src="screenshots/bar-badge.png" alt="nchat badge showing two new messages in the Omarchy bar" width="900">
 
+<img src="screenshots/nchat-notification.png" alt="Omarchy nchat notification above an active nchat terminal session" width="900">
+
 </div>
 
 ---
